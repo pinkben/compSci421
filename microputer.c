@@ -7,11 +7,35 @@
 *******************************************************************************/
 
 #include <stdio.h>
+#include <err.h>
+
 
 int main(int argc, char* argv[])
 {
+	FILE* inputFile;
+    FILE* outputfile;
+    const int maxFileSize = 16;
+    unsigned char inputBuffer[maxFileSize];
 
- return 0;
+    inputFile = fopen(argv[1], "rb");
+
+    if (!inputFile) {
+        printf("The file could not be opened.\n");
+        return 1;
+    }
+
+    printf("Opened the file!\n");
+
+    fread(&inputBuffer, sizeof(short), maxFileSize, inputFile);
+
+    for(int i = 0; i < maxFileSize; i ++)
+    {
+        printf("%d\n", inputBuffer[i]);
+    }
+
+    fclose(inputFile);
+
+	return 0;
 }
 
 void decode_instruction(char instruction[],
@@ -23,13 +47,9 @@ void decode_instruction(char instruction[],
                         char* addr)
 {
 
-
-
-
-
 }
 
-int execute_program(char program[])
+int execute_program(char program[], int number_instructions)
 {
 	
 }
