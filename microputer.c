@@ -16,15 +16,15 @@
 #define WORDSIZE 2
 
 /* Global Variables */
-unsigned short inputBuffer[MAXFILESIZE]; //Memory buffer
+unsigned short inputBuffer[MAXFILESIZE]; // Memory buffer
 unsigned char reg[16]; // Registers
 unsigned short int programCounter;
 unsigned short int instructionRegister;
 char *instructions[] = {"LDI", "ADD", "AND", "OR",
                         "XOR", "PRT", "RDD", "BLE"};
 
-unsigned short maskOperand(unsigned short instructionBinary) {
-    short operand = (instructionBinary & 57344) >> 13;
+unsigned short mask_operand(unsigned short instructionBinary) {
+    unsigned short operand = instructionBinary  >> 13;
     return operand;
 }
 
@@ -53,7 +53,7 @@ unsigned short maskImm(unsigned short instructionBinary) {
     return immediateValue;
 }
 
-unsigned int readFile(FILE *file) {
+unsigned int read_file(FILE *file) {
 
     if (!file) {
         printf("The file could not be opened.\n");
@@ -66,14 +66,14 @@ unsigned int readFile(FILE *file) {
     return numOfInstructions;
 }
 
-void outputInstructions(unsigned short inputBufferElement, int i, FILE *outputFile) {
+void output_instructions(unsigned short inputBufferElement, int i, FILE *outputFile) {
     
     if(!outputFile) {
         printf("We were not able to access the file.\n");
         exit(1);
     }
 
-    short operand = maskOperand(inputBufferElement);
+    short operand = mask_operand(inputBufferElement);
 
     fprintf(outputFile, "%d: ", i * WORDSIZE);
     switch(operand) {
@@ -125,6 +125,47 @@ void outputInstructions(unsigned short inputBufferElement, int i, FILE *outputFi
     }
 }
 
+void perform_ldi(unsigned short instructionBinary) {
+    reg[maskRi(instructionBinary)] = maskImm(instructionBinary);
+}
+
+void perform_add(unsigned short instructionBinary) {
+    reg[maskRk(instructionBinary)] = reg[maskRi(instructionBinary)] + reg[maskRj(instructionBinary)];
+}
+
+void perform_and(unsigned short instructionBinary) {
+    reg[maskRk(instructionBinary)] = reg[maskRj(instructionBinary)] & reg[maskRj(instructionBinary)];
+}
+
+void perform_or(unsigned short instructionBinary) {
+    reg[maskRk(instructionBinary)] = reg[maskRi(instructionBinary)] | reg[maskRj(instructionBinary)];
+}
+
+void perform_xor(unsigned short instructionBinary) {
+    reg[maskRk(instructionBinary)] = reg[maskRi(instructionBinary)] ^ reg[maskRj(instructionBinary)];
+}
+
+void perform_prt(unsigned short instructionBinary) {
+    printf("%d\n", reg[maskRi(instructionBinary)]);
+}
+
+void perform_rdd(unsigned short int instructionBinary) {
+    unsigned int input;
+    scanf("%d", &input);
+    reg[maskRi(instructionBinary)] = (unsigned char) input;
+}
+
+void perform_ble(unsigned short instructionBinary) {
+    if((maskImm(instructionBinary) % 2) != 0) {
+        printf("The address is invalid.\n");
+        exit(1);
+    }
+
+    if(reg[maskRi(instructionBinary)] < reg[maskRj(instructionBinary)]) {
+        programCounter = (unsigned short) maskAddress(instructionBinary) - WORDSIZE;
+    }
+}
+
 void decode_instruction(char instruction[],
                         char* op,
                         char* ri,
@@ -135,12 +176,45 @@ void decode_instruction(char instruction[],
 
 }
 
-int execute_program(char program[], int number_instructions) {
-	
+int execute_program(unsigned short program[], int number_instructions) {
+	for(programCounter = 0; programCounter < number_instructions; programCounter++) {
+        instructionRegister = ntohs(inputBuffer[programCounter]);
+        unsigned short currentInstruction = mask_operand(instructionRegister);
+        switch(currentInstruction) {
+            case 0:
+                perform_ldi(instructionRegister);
+                break;
+            case 1:
+                perform_add(instructionRegister);
+                break;
+            case 2:
+                perform_and(instructionRegister);
+                break;
+            case 3:
+                perform_or(instructionRegister);
+                break;
+            case 4:
+                perform_xor(instructionRegister);
+                break;
+            case 5:
+                perform_prt(instructionRegister);
+                break;
+            case 6:
+                perform_rdd(instructionRegister);
+                break;
+            case 7:
+                perform_ble(instructionRegister);
+                break;
+            default:
+                printf("Invalid instruction encountered within memory.\n");
+                exit(1);
+        }
+    }
 }
 
 int main(int argc, char* argv[])
 {
+    /* Argument count check */
     if(argc != 3) {
         printf("There was an invalid number of arguments. Try again.\n");
         exit(1);
@@ -150,14 +224,16 @@ int main(int argc, char* argv[])
     //remove me after makefile is complete
 
     FILE *inputFile = fopen(argv[1], "rb");
-    int numOfInstructions = readFile(inputFile);
+    int numOfInstructions = read_file(inputFile);
     fclose(inputFile);
 
     FILE *outputfile = fopen(argv[2], "w");
     for(int i = 0; i < numOfInstructions; i++){
-        outputInstructions(ntohs(inputBuffer[i]), i, outputfile);
+        output_instructions(ntohs(inputBuffer[i]), i, outputfile);
     }
     fclose(outputfile);
+
+    execute_program(inputBuffer, numOfInstructions);
 
 	return 0;
 }
