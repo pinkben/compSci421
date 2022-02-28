@@ -2,7 +2,7 @@
  * Description: Program for reading in a binary program file as input, 
  * translating the input code to assembly code and outputting the resulting to 
  * a text file. 
- * Author: Demetrios Green
+ * Author: Demetrios Green & Ben Pink
  * Date: 02-08-2022
 *******************************************************************************/
 
@@ -17,7 +17,7 @@
 
 /* Global Variables */
 unsigned char inputBuffer[MAXFILESIZE]; // Memory buffer
-unsigned char reg[16]; // Registers
+unsigned char reg[32]; // Registers
 unsigned short int programCounter;
 unsigned short int instructionRegister;
 char* op;
@@ -29,33 +29,33 @@ char* addr;
 char *instructions[] = {"LDI", "ADD", "AND", "OR",
                         "XOR", "PRT", "RDD", "BLE"};
 
-unsigned short mask_operand(unsigned short instructionBinary) {
-    unsigned short operand = instructionBinary  >> 13;
+unsigned char mask_operand(unsigned char instructionBinary) {
+    unsigned char operand = instructionBinary  >> 13;
     return operand;
 }
 
-unsigned short maskRi(unsigned short instructionBinary){
-    unsigned short registerNum = (instructionBinary & 7680)  >> 9;
+unsigned char maskRi(unsigned char instructionBinary){
+    unsigned char registerNum = (instructionBinary & 7680)  >> 9;
     return registerNum;
 }
 
-unsigned short maskRj(unsigned short instructionBinary){
-    unsigned short registerNum = (instructionBinary & 480) >> 5;
+unsigned char maskRj(unsigned char instructionBinary){
+    unsigned char registerNum = (instructionBinary & 480) >> 5;
     return registerNum;
 }
 
-unsigned short maskRk(unsigned short instructionBinary){
-    unsigned short registerNum = (instructionBinary & 30)  >> 1;
+unsigned char maskRk(unsigned char instructionBinary){
+    unsigned char registerNum = (instructionBinary & 30)  >> 1;
     return registerNum;
 }
 
-unsigned short maskAddress(unsigned short instructionBinary){
+unsigned char maskAddress(unsigned short instructionBinary){
     unsigned short registerNum = instructionBinary & 31;
     return registerNum;
 }
 
-unsigned short maskImm(unsigned short instructionBinary) {
-    unsigned short immediateValue = (instructionBinary & 510) >> 1;
+unsigned char maskImm(unsigned char instructionBinary) {
+    unsigned char immediateValue = (instructionBinary & 510) >> 1;
     return immediateValue;
 }
 
@@ -72,7 +72,7 @@ unsigned int read_file(FILE *file) {
     return numOfInstructions;
 }
 
-void output_instructions(unsigned short inputBufferElement, int i, FILE *outputFile) {
+void output_instructions(unsigned char inputBufferElement, int i, FILE *outputFile) {
     // We need to grab the values from the decode fucntion and use them here.
     // So we shouldnt need to pass anything other then the outputfile and i.
     if(!outputFile) {
@@ -80,7 +80,7 @@ void output_instructions(unsigned short inputBufferElement, int i, FILE *outputF
         exit(1);
     }
 
-    short operand = mask_operand(inputBufferElement);
+    char operand = mask_operand(inputBufferElement);
 
     fprintf(outputFile, "%d: ", i * WORDSIZE);
     switch(operand) {
@@ -132,31 +132,32 @@ void output_instructions(unsigned short inputBufferElement, int i, FILE *outputF
     }
 }
 
-void perform_ldi(unsigned short instructionBinary) {
+// Instead of masking, just look at what values are sitting in decode and use those.
+void perform_ldi(unsigned char instructionBinary) {
     reg[maskRi(instructionBinary)] = maskImm(instructionBinary);
 }
 
-void perform_add(unsigned short instructionBinary) {
+void perform_add(unsigned char instructionBinary) {
     reg[maskRk(instructionBinary)] = reg[maskRi(instructionBinary)] + reg[maskRj(instructionBinary)];
 }
 
-void perform_and(unsigned short instructionBinary) {
+void perform_and(unsigned char instructionBinary) {
     reg[maskRk(instructionBinary)] = reg[maskRj(instructionBinary)] & reg[maskRj(instructionBinary)];
 }
 
-void perform_or(unsigned short instructionBinary) {
+void perform_or(unsigned char instructionBinary) {
     reg[maskRk(instructionBinary)] = reg[maskRi(instructionBinary)] | reg[maskRj(instructionBinary)];
 }
 
-void perform_xor(unsigned short instructionBinary) {
+void perform_xor(unsigned char instructionBinary) {
     reg[maskRk(instructionBinary)] = reg[maskRi(instructionBinary)] ^ reg[maskRj(instructionBinary)];
 }
 
-void perform_prt(unsigned short instructionBinary) {
+void perform_prt(unsigned char instructionBinary) {
     printf("%d\n", reg[maskRi(instructionBinary)]);
 }
 
-void perform_rdd(unsigned short int instructionBinary) {
+void perform_rdd(unsigned char instructionBinary) {
     unsigned int input;
     scanf("%d", &input);
     reg[maskRi(instructionBinary)] = (unsigned char) input;
@@ -183,18 +184,19 @@ void decode_instruction(char instruction[],
     // We are going to fill all of these will whatever value is in the instruction.  
     // Then when we print/execute, we will only grab the varibles we need
     op = mask_operand(instruction[0]);
-    ri = maskRi();
-    rj = maskRj();
-    rk = maskRk();
-    imm = maskImm();
-    addr = maskAddress();
-
-
+    ri = maskRi(instruction[0]);
+    rj = maskRj(NULL);
+    rk = maskRk(instruction[1]);
+    imm = maskImm(instruction[1]);
+    addr = maskAddress(instruction[1]);
 }
 
-int execute_program(unsigned short program[], int number_instructions) {
+int execute_program(char program[], int number_instructions) {
+    // send the instruction to the decode
+    // once it has been sent to decode, read the opcode 
+    // then, go along and execute the function that corresponds to the opcode
 	for(programCounter = 0; programCounter < number_instructions; programCounter++) {
-        instructionRegister = ntohs(inputBuffer[programCounter]);
+        instructionRegister = inputBuffer[programCounter];
         unsigned short currentInstruction = mask_operand(instructionRegister);
         switch(currentInstruction) {
             case 0:
