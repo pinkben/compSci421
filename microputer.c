@@ -12,14 +12,20 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-#define MAXFILESIZE 16
+#define MAXFILESIZE 32
 #define WORDSIZE 2
 
 /* Global Variables */
-unsigned short inputBuffer[MAXFILESIZE]; // Memory buffer
+unsigned char inputBuffer[MAXFILESIZE]; // Memory buffer
 unsigned char reg[16]; // Registers
 unsigned short int programCounter;
 unsigned short int instructionRegister;
+char* op;
+char* ri;
+char* rj;
+char* rk;
+short* imm;
+char* addr;
 char *instructions[] = {"LDI", "ADD", "AND", "OR",
                         "XOR", "PRT", "RDD", "BLE"};
 
@@ -61,13 +67,14 @@ unsigned int read_file(FILE *file) {
     }
 
     int numOfInstructions = fread(&inputBuffer, 
-                                  sizeof(short), MAXFILESIZE, file);
+                                  sizeof(char), MAXFILESIZE, file);
 
     return numOfInstructions;
 }
 
 void output_instructions(unsigned short inputBufferElement, int i, FILE *outputFile) {
-    
+    // We need to grab the values from the decode fucntion and use them here.
+    // So we shouldnt need to pass anything other then the outputfile and i.
     if(!outputFile) {
         printf("We were not able to access the file.\n");
         exit(1);
@@ -173,6 +180,15 @@ void decode_instruction(char instruction[],
                         char* rk,
                         short* imm,
                         char* addr) {
+    // We are going to fill all of these will whatever value is in the instruction.  
+    // Then when we print/execute, we will only grab the varibles we need
+    op = mask_operand(instruction[0]);
+    ri = maskRi();
+    rj = maskRj();
+    rk = maskRk();
+    imm = maskImm();
+    addr = maskAddress();
+
 
 }
 
@@ -228,9 +244,14 @@ int main(int argc, char* argv[])
     fclose(inputFile);
 
     FILE *outputfile = fopen(argv[2], "w");
-    for(int i = 0; i < numOfInstructions; i++){
-        output_instructions(ntohs(inputBuffer[i]), i, outputfile);
-    }
+    for(int i = 0; i < numOfInstructions && i < 32; i+=WORDSIZE){
+        // Scott said no more then 16 instructions
+        char firstHalf = inputBuffer[i];
+        char secondHalf = inputBuffer[i + 1];
+        char instruction[] = {firstHalf,secondHalf};
+        decode_instruction(instruction, op, ri, rj, rk, imm, addr);
+        //output_instructions(inputBuffer[i], i, outputfile);
+    
     fclose(outputfile);
 
     execute_program(inputBuffer, numOfInstructions);
