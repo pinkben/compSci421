@@ -16,8 +16,9 @@
 #define WORDSIZE 2
 
 /* Global Variables */
-unsigned char inputBuffer[MAXFILESIZE]; // Memory buffer
-unsigned char reg[32]; // Registers
+unsigned char inputBuffer[MAXFILESIZE]; // Memory buffer <- can probably remove this
+unsigned char registers[16]; //Registers
+unsigned char memory[32]; 
 unsigned short int programCounter;
 unsigned short int instructionRegister;
 char* op;
@@ -30,22 +31,29 @@ char *instructions[] = {"LDI", "ADD", "AND", "OR",
                         "XOR", "PRT", "RDD", "BLE"};
 
 unsigned char mask_operand(unsigned char instructionBinary) {
-    unsigned char operand = instructionBinary  >> 13;
+    unsigned char operand = instructionBinary  >> 4;
     return operand;
 }
 
 unsigned char maskRi(unsigned char instructionBinary){
-    unsigned char registerNum = (instructionBinary & 7680)  >> 9;
+    unsigned char registerNum = (instructionBinary & 60)  >> 2;
     return registerNum;
 }
 
-unsigned char maskRj(unsigned char instructionBinary){
-    unsigned char registerNum = (instructionBinary & 480) >> 5;
+unsigned char maskRj(unsigned char instructionBinary1, unsigned char instructionBinary2){
+    if((instructionBinary1 & 1) == 1)
+    {
+        unsigned char registerNum = (instructionBinary2 & >> 5) + 8;
+    }
+    else
+    {
+        unsigned char registerNum = instructionBinary2 >> 5;
+    }
     return registerNum;
 }
 
 unsigned char maskRk(unsigned char instructionBinary){
-    unsigned char registerNum = (instructionBinary & 30)  >> 1;
+    unsigned char registerNum = (instructionBinary & 30) >> 1;
     return registerNum;
 }
 
@@ -66,7 +74,7 @@ unsigned int read_file(FILE *file) {
         return 1;
     }
 
-    int numOfInstructions = fread(&inputBuffer, 
+    int numOfInstructions = fread(&memory, 
                                   sizeof(char), MAXFILESIZE, file);
 
     return numOfInstructions;
@@ -185,7 +193,7 @@ void decode_instruction(char instruction[],
     // Then when we print/execute, we will only grab the varibles we need
     op = mask_operand(instruction[0]);
     ri = maskRi(instruction[0]);
-    rj = maskRj(NULL);
+    rj = maskRj(instruction[0], instruction[1]);
     rk = maskRk(instruction[1]);
     imm = maskImm(instruction[1]);
     addr = maskAddress(instruction[1]);
@@ -238,7 +246,7 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    memset(inputBuffer, 0 , sizeof(inputBuffer));
+    memset(memory, 0 , sizeof(memory));
     //remove me after makefile is complete
 
     FILE *inputFile = fopen(argv[1], "rb");
