@@ -31,23 +31,24 @@ char *instructions[] = {"LDI", "ADD", "AND", "OR",
                         "XOR", "PRT", "RDD", "BLE"};
 
 unsigned char mask_operand(unsigned char instructionBinary) {
-    unsigned char operand = instructionBinary  >> 4;
+    unsigned char operand = instructionBinary >> 4;
     return operand;
 }
 
 unsigned char maskRi(unsigned char instructionBinary){
-    unsigned char registerNum = (instructionBinary & 60)  >> 2;
+    unsigned char registerNum = (instructionBinary & 60) >> 2;
     return registerNum;
 }
 
 unsigned char maskRj(unsigned char instructionBinary1, unsigned char instructionBinary2){
+    unsigned char registerNum;
     if((instructionBinary1 & 1) == 1)
     {
-        unsigned char registerNum = (instructionBinary2 & >> 5) + 8;
+        registerNum = (instructionBinary2 >> 5) + 8;
     }
     else
     {
-        unsigned char registerNum = instructionBinary2 >> 5;
+        registerNum = instructionBinary2 >> 5;
     }
     return registerNum;
 }
@@ -62,8 +63,8 @@ unsigned char maskAddress(unsigned short instructionBinary){
     return registerNum;
 }
 
-unsigned char maskImm(unsigned char instructionBinary) {
-    unsigned char immediateValue = (instructionBinary & 510) >> 1;
+unsigned short maskImm(unsigned char instructionBinary) {
+    unsigned short immediateValue = (instructionBinary & 510) >> 1;
     return immediateValue;
 }
 
@@ -80,7 +81,7 @@ unsigned int read_file(FILE *file) {
     return numOfInstructions;
 }
 
-void output_instructions(unsigned char inputBufferElement, int i, FILE *outputFile) {
+void output_instructions(int i, FILE *outputFile) {
     // We need to grab the values from the decode fucntion and use them here.
     // So we shouldnt need to pass anything other then the outputfile and i.
     if(!outputFile) {
@@ -88,52 +89,50 @@ void output_instructions(unsigned char inputBufferElement, int i, FILE *outputFi
         exit(1);
     }
 
-    char operand = mask_operand(inputBufferElement);
-
     fprintf(outputFile, "%d: ", i * WORDSIZE);
-    switch(operand) {
-        case 0:
+    switch((int)op) {
+        case '0':
             fprintf(outputFile, "%s R%d %d\n", instructions[0], 
-                                               maskRi(inputBufferElement),
-                                               maskImm(inputBufferElement));
+                                               ri,
+                                               imm);
             break;
-        case 1:
+        case '1':
             fprintf(outputFile, "%s R%d R%d R%d\n", instructions[1],
-                                       maskRi(inputBufferElement),
-                                       maskRj(inputBufferElement),
-                                       maskRk(inputBufferElement));
+                                       ri,
+                                       rj,
+                                       rk);
             break;
-        case 2:
+        case '2':
             fprintf(outputFile, "%s R%d R%d R%d\n", instructions[2],
-                                       maskRi(inputBufferElement),
-                                       maskRj(inputBufferElement),
-                                       maskRk(inputBufferElement));
+                                       ri,
+                                       rj,
+                                       rk);
             break;
-        case 3:
+        case '3':
             fprintf(outputFile, "%s R%d R%d R%d\n", instructions[3],
-                                       maskRi(inputBufferElement),
-                                       maskRj(inputBufferElement),
-                                       maskRk(inputBufferElement));
+                                       ri,
+                                       rj,
+                                       rk);
             break;
-        case 4:
+        case '4':
             fprintf(outputFile, "%s R%d R%d R%d\n", instructions[4],
-                                       maskRi(inputBufferElement),
-                                       maskRj(inputBufferElement),
-                                       maskRk(inputBufferElement));
+                                       ri,
+                                       rj,
+                                       rk);
             break;
-        case 5:
+        case '5':
             fprintf(outputFile, "%s R%d\n", instructions[5],
-                                            maskRi(inputBufferElement));
+                                            ri);
             break;
-        case 6:
+        case '6':
             fprintf(outputFile, "%s R%d\n", instructions[6],
-                                            maskRi(inputBufferElement));
+                                            ri);
             break;
-        case 7:
+        case '7':
             fprintf(outputFile, "%s R%d R%d %d\n", instructions[7],
-                                            maskRi(inputBufferElement),
-                                            maskRj(inputBufferElement),
-                                            maskAddress(inputBufferElement));
+                                                ri,
+                                                rj,
+                                                addr);
             break;
         default:
             fprintf(outputFile, "Uknown operand provided. Continuing...\n");
@@ -141,7 +140,7 @@ void output_instructions(unsigned char inputBufferElement, int i, FILE *outputFi
 }
 
 // Instead of masking, just look at what values are sitting in decode and use those.
-void perform_ldi(unsigned char instructionBinary) {
+/*void perform_ldi(unsigned char instructionBinary) {
     reg[maskRi(instructionBinary)] = maskImm(instructionBinary);
 }
 
@@ -180,7 +179,7 @@ void perform_ble(unsigned short instructionBinary) {
     if(reg[maskRi(instructionBinary)] < reg[maskRj(instructionBinary)]) {
         programCounter = (unsigned short) maskAddress(instructionBinary) - WORDSIZE;
     }
-}
+}*/
 
 void decode_instruction(char instruction[],
                         char* op,
@@ -199,7 +198,7 @@ void decode_instruction(char instruction[],
     addr = maskAddress(instruction[1]);
 }
 
-int execute_program(char program[], int number_instructions) {
+/*int execute_program(char program[], int number_instructions) {
     // send the instruction to the decode
     // once it has been sent to decode, read the opcode 
     // then, go along and execute the function that corresponds to the opcode
@@ -236,7 +235,7 @@ int execute_program(char program[], int number_instructions) {
                 exit(1);
         }
     }
-}
+}*/
 
 int main(int argc, char* argv[])
 {
@@ -260,11 +259,11 @@ int main(int argc, char* argv[])
         char secondHalf = inputBuffer[i + 1];
         char instruction[] = {firstHalf,secondHalf};
         decode_instruction(instruction, op, ri, rj, rk, imm, addr);
-        //output_instructions(inputBuffer[i], i, outputfile);
-    
+        output_instructions(i, outputfile);
+    }
     fclose(outputfile);
 
-    execute_program(inputBuffer, numOfInstructions);
+    //execute_program(inputBuffer, numOfInstructions);
 
 	return 0;
 }
