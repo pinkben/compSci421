@@ -1,3 +1,8 @@
+/*******************************************************************************
+ * Description: Original sample code provided with lab
+ * Author: Demetrios Green & Ben Pink
+ * Date: 03-30-2022
+*******************************************************************************/
 
 #include <string.h>
 #include <unistd.h> // pipe/fork/dup2
