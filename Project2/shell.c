@@ -46,5 +46,12 @@ int main(int argc, char* argv[])
 
 int tokenize(char line[], char* tokens[], char delim[])
 {
+    int i = 0;
+    char* token;
+    token = strtok(line, delim);
+    while(token != NULL ) {
+        tokens[i] = token;
+        token = strtok(NULL, s);
+    }
     return sizeof(tokens);
 }
