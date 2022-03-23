@@ -2,7 +2,7 @@
  * Description: Program for reading in a binary program file as input, 
  * translating the input code to assembly code and outputting the resulting to 
  * a text file. 
- * Author: Demetrios Green
+ * Author: Demetrios Green & Ben Pink
  * Date: 02-08-2022
 *******************************************************************************/
 
@@ -22,6 +22,7 @@ unsigned short int programCounter;
 unsigned short int instructionRegister;
 char *instructions[] = {"LDI", "ADD", "AND", "OR",
                         "XOR", "PRT", "RDD", "BLE"};
+int numOfInstructions;
 
 unsigned short mask_operand(unsigned short instructionBinary) {
     unsigned short operand = instructionBinary  >> 13;
@@ -134,7 +135,7 @@ void perform_add(unsigned short instructionBinary) {
 }
 
 void perform_and(unsigned short instructionBinary) {
-    reg[maskRk(instructionBinary)] = reg[maskRj(instructionBinary)] & reg[maskRj(instructionBinary)];
+    reg[maskRk(instructionBinary)] = reg[maskRi(instructionBinary)] & reg[maskRj(instructionBinary)];
 }
 
 void perform_or(unsigned short instructionBinary) {
@@ -156,17 +157,24 @@ void perform_rdd(unsigned short int instructionBinary) {
 }
 
 void perform_ble(unsigned short instructionBinary) {
-    if((maskImm(instructionBinary) % 2) != 0) {
+    if((maskAddress(instructionBinary) % 2) != 0) {
         printf("The address is invalid.\n");
         exit(1);
     }
 
-    if(reg[maskRi(instructionBinary)] < reg[maskRj(instructionBinary)]) {
-        programCounter = (unsigned short) maskAddress(instructionBinary) - WORDSIZE;
+    if(reg[maskRi(instructionBinary)] <= reg[maskRj(instructionBinary)]) {
+        programCounter = (unsigned short) maskAddress(instructionBinary) / 2;
+        printf("Program counter new value:%d\n", programCounter);
     }
+
+    if(programCounter > numOfInstructions) {
+        printf("Memory bounds has been violated.\n");
+        exit(1);
+    }
+    
 }
 
-void decode_instruction(char instruction[],
+void decode_instruction(char instructions[],
                         char* op,
                         char* ri,
                         char* rj,
@@ -224,7 +232,8 @@ int main(int argc, char* argv[])
     //remove me after makefile is complete
 
     FILE *inputFile = fopen(argv[1], "rb");
-    int numOfInstructions = read_file(inputFile);
+    numOfInstructions = read_file(inputFile);
+    printf("Number of instructions: %d\n", numOfInstructions);
     fclose(inputFile);
 
     FILE *outputfile = fopen(argv[2], "w");
