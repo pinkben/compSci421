@@ -22,7 +22,7 @@ void close_pipes(int pipes[][2])
 int main() 
 {
    int pipes[NUM_PIPES][2];
-   int pid, i, status;
+   int pid, status;
    pipe(pipes[0]);
    pipe(pipes[1]);
    pid = fork();
