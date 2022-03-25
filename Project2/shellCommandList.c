@@ -32,6 +32,8 @@ ShellCommandList *initializeShellCommandList()
 
 	shellCommandList->head = NULL;
 	shellCommandList->tail = NULL;
+
+	return shellCommandList;
 }
 
 /**
