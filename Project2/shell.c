@@ -9,9 +9,12 @@
 #include <unistd.h>		// pipe/fork/dup2
 #include <sys/wait.h> // waitpid
 #include <fcntl.h>
+#include "shellHistory.h"
+#include "shellCommandList.h"
 
 int MAX_INPUT_SIZE = 100;
 int tokenize(char line[], char *tokens[], char delim[]);
+int validateToken(char token[]);
 
 int main(int argc, char *argv[])
 {
@@ -36,7 +39,7 @@ int main(int argc, char *argv[])
 			*((char *)memchr(input, '\n', MAX_INPUT_SIZE + 1)) = '\0';
 		}
 		// Parse input
-		numberOfTokens = tokenize(input, arguments, " ");
+		numberOfTokens = tokenize(input, arguments, " \t\r\n");
 		if (numberOfTokens > 0)
 		{
 			done = 1;
@@ -50,11 +53,28 @@ int main(int argc, char *argv[])
 int tokenize(char line[], char *tokens[], char delim[])
 {
     int i = 0;
-    char* token;
-    token = strtok(line, delim);
+    // Get the first token
+    char *token = strtok(line, delim);
     while(token != NULL ) {
-        tokens[i] = token;
-        token = strtok(NULL, s);
+        // Add the token to the list of tokens and continue
+        // until we hit the end of the list
+        if(validateToken(token)){
+            tokens[i] = token;
+            token = strtok(NULL, delim);
+            i++;
+        }
+        else
+        {
+            // What should we do if we hit an invalid token? freeCommandList?
+            return NULL;
+        }
     }
-    return sizeof(tokens);
+    return i;
+}
+
+// Not sure what we want to do here, I think the idea is if there is more than
+// one "token" in a command, make sure the middle token is a < | & 
+int validateToken(char token[])
+{
+    return 1;
 }
