@@ -78,3 +78,13 @@ int validateToken(char token[])
 {
     return 1;
 }
+
+// Function to handle execution of commands
+// I think this is where that example code from class will live
+int executeCommands(char *commands[])
+{
+    if (strcmp(commands[0], "quit") == 0){
+        return 1;
+    }
+    return 0;
+}
