@@ -29,6 +29,7 @@ short* imm;
 char* addr;
 char *instructions[] = {"LDI", "ADD", "AND", "OR",
                         "XOR", "PRT", "RDD", "BLE"};
+int numOfInstructions;
 
 unsigned char mask_operand(unsigned char instructionBinary) {
     unsigned char operand = instructionBinary >> 4;
@@ -148,8 +149,13 @@ void perform_add(unsigned char instructionBinary) {
     reg[maskRk(instructionBinary)] = reg[maskRi(instructionBinary)] + reg[maskRj(instructionBinary)];
 }
 
+<<<<<<< HEAD
 void perform_and(unsigned char instructionBinary) {
     reg[maskRk(instructionBinary)] = reg[maskRj(instructionBinary)] & reg[maskRj(instructionBinary)];
+=======
+void perform_and(unsigned short instructionBinary) {
+    reg[maskRk(instructionBinary)] = reg[maskRi(instructionBinary)] & reg[maskRj(instructionBinary)];
+>>>>>>> origin/dee-branch
 }
 
 void perform_or(unsigned char instructionBinary) {
@@ -171,17 +177,28 @@ void perform_rdd(unsigned char instructionBinary) {
 }
 
 void perform_ble(unsigned short instructionBinary) {
-    if((maskImm(instructionBinary) % 2) != 0) {
+    if((maskAddress(instructionBinary) % 2) != 0) {
         printf("The address is invalid.\n");
         exit(1);
     }
 
-    if(reg[maskRi(instructionBinary)] < reg[maskRj(instructionBinary)]) {
-        programCounter = (unsigned short) maskAddress(instructionBinary) - WORDSIZE;
+    if(reg[maskRi(instructionBinary)] <= reg[maskRj(instructionBinary)]) {
+        programCounter = (unsigned short) maskAddress(instructionBinary) / 2;
+        printf("Program counter new value:%d\n", programCounter);
     }
+<<<<<<< HEAD
 }*/
+=======
 
-void decode_instruction(char instruction[],
+    if(programCounter > numOfInstructions) {
+        printf("Memory bounds has been violated.\n");
+        exit(1);
+    }
+    
+}
+>>>>>>> origin/dee-branch
+
+void decode_instruction(char instructions[],
                         char* op,
                         char* ri,
                         char* rj,
@@ -249,7 +266,8 @@ int main(int argc, char* argv[])
     //remove me after makefile is complete
 
     FILE *inputFile = fopen(argv[1], "rb");
-    int numOfInstructions = read_file(inputFile);
+    numOfInstructions = read_file(inputFile);
+    printf("Number of instructions: %d\n", numOfInstructions);
     fclose(inputFile);
 
     FILE *outputfile = fopen(argv[2], "w");
