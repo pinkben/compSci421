@@ -4,20 +4,20 @@
 
 #define SHELL_HISTORY_LIMIT 5
 
-struct shellHistoryNode
+typedef struct shellHistoryNode
 {
 	char *shellCommand;
-	struct historyNode *next;
-	struct historyNode *previous;
-};
+	struct shellHistoryNode *next;
+	struct shellHistoryNode *previous;
+} ShellHistoryNode;
 
-struct shellHistory
+typedef struct shellHistory
 {
 	ShellHistoryNode *head;
 	ShellHistoryNode *tail;
 	int size;
 	int limit;
-};
+} ShellHistory;
 
 /**
  * @brief Creates a new shellHistory on the heap
@@ -27,32 +27,32 @@ struct shellHistory
 ShellHistory *initializeShellHistory()
 {
 	// Allocate space for shell history queue
-	ShellHistory *shellHistory = (ShellHistory *)malloc(sizeof(ShellHistory));
+	ShellHistory *currentShellHistory = (ShellHistory *)malloc(sizeof(ShellHistory));
 
 	// Handle null reference case
-	if (shellHistory == NULL)
+	if (currentShellHistory == NULL)
 	{
 		return NULL;
 	}
 
 	// Initialize members
-	shellHistory->head = NULL;
-	shellHistory->tail = NULL;
-	shellHistory->size = 0;
-	shellHistory->limit = SHELL_HISTORY_LIMIT;
+	currentShellHistory->head = NULL;
+	currentShellHistory->tail = NULL;
+	currentShellHistory->size = 0;
+	currentShellHistory->limit = SHELL_HISTORY_LIMIT;
 
-	return shellHistory;
+	return currentShellHistory;
 }
 
 /**
  * @brief Adds a new shell command to the shell history, removes first in if
  * size limit reached. Also does not add if size limit is set 0.
  *
- * @param shellHistory to be added to
+ * @param currentShellHistory to be added to
  * @param shellCommand to be added
  * @return int 1 if added, 0 if not added
  */
-int addShellHistory(ShellHistory *shellHistory, char *shellCommand)
+int addShellHistory(ShellHistory *currentShellHistory, char *shellCommand)
 {
 	// Allocate space for shellHistoryNode
 	ShellHistoryNode *shellHistoryNode =
@@ -66,66 +66,66 @@ int addShellHistory(ShellHistory *shellHistory, char *shellCommand)
 	shellHistoryNode->shellCommand = strdup(shellCommand);
 	// Handle strdup errors when assigning pointer to shellCommand member and
 	// check that size limit is not set to 0
-	if (!shellHistoryNode->shellCommand || shellHistory->limit == 0)
+	if (!shellHistoryNode->shellCommand || currentShellHistory->limit == 0)
 	{
 		return 0;
 	}
 
 	// Case when shell history is empty
-	if (shellHistory->size == 0)
+	if (currentShellHistory->size == 0)
 	{
 		shellHistoryNode->previous = NULL;
 		shellHistoryNode->next = NULL;
-		shellHistory->head = shellHistoryNode;
-		shellHistory->tail = shellHistoryNode;
+		currentShellHistory->head = shellHistoryNode;
+		currentShellHistory->tail = shellHistoryNode;
 	}
 
 	// Case when shell history is full
-	else if (shellHistory->size == shellHistory->limit)
+	else if (currentShellHistory->size == currentShellHistory->limit)
 	{
 		// Remove head node, set new head, reduce size
-		ShellHistoryNode *newHead = shellHistory->head->next;
-		free(shellHistory->head);
+		ShellHistoryNode *newHead = currentShellHistory->head->next;
+		free(currentShellHistory->head);
 		newHead->previous = NULL;
-		shellHistory->head = newHead;
-		shellHistory->size--;
+		currentShellHistory->head = newHead;
+		currentShellHistory->size--;
 	}
 
 	// Add to tail
-	shellHistory->tail->next = shellHistoryNode;
-	shellHistoryNode->previous = shellHistory->tail;
+	currentShellHistory->tail->next = shellHistoryNode;
+	shellHistoryNode->previous = currentShellHistory->tail;
 	shellHistoryNode->next = NULL;
-	shellHistory->tail = shellHistoryNode;
-	shellHistory->size++;
+	currentShellHistory->tail = shellHistoryNode;
+	currentShellHistory->size++;
 	return 1;
 }
 
 /**
  * @brief Return shellHistory in a string array
  *
- * @param shellHistory
+ * @param currentShellHistory
  * @return char** pointer to a string array
  */
-char **getShellHistory(ShellHistory *shellHistory)
+char **getShellHistory(ShellHistory *currentShellHistory)
 {
 	// Allocate space for the string array with NULL termination character.
 	char **shellCommandArray =
-			(char **)malloc(shellHistory->size * sizeof(char *) + 1);
+			(char **)malloc(currentShellHistory->size * sizeof(char *) + 1);
 	if (!shellCommandArray) // Handle possible allocation issue
 	{
 		return NULL;
 	}
 
-	shellCommandArray[shellHistory->size] = NULL; // Set last value to NULL
+	shellCommandArray[currentShellHistory->size] = NULL; // Set last value to NULL
 	ShellHistoryNode *currentNode = NULL;					// Node pointer to pull command from
 
-	if (shellHistory->size == 0) // Early return
+	if (currentShellHistory->size == 0) // Early return
 	{
 		return shellCommandArray;
 	}
 
-	currentNode = shellHistory->head; // Start with oldest history at head
-	for (int i = 0; i < shellHistory->size; i++)
+	currentNode = currentShellHistory->head; // Start with oldest history at head
+	for (int i = 0; i < currentShellHistory->size; i++)
 	{
 		shellCommandArray[i] = currentNode->shellCommand;
 		currentNode = currentNode->next;
@@ -137,29 +137,29 @@ char **getShellHistory(ShellHistory *shellHistory)
 /**
  * @brief Deallocates memory for shellHistory and nodes within
  *
- * @param shellHistory
+ * @param currentShellHistory
  */
-void clearShellHistory(ShellHistory *shellHistory)
+void clearShellHistory(ShellHistory *currentShellHistory)
 {
 	ShellHistoryNode *nodeToDelete;
-	while (shellHistory->size > 0)
+	while (currentShellHistory->size > 0)
 	{
-		nodeToDelete = shellHistory->head;
-		shellHistory->head = nodeToDelete->next;
+		nodeToDelete = currentShellHistory->head;
+		currentShellHistory->head = nodeToDelete->next;
 		free(nodeToDelete);
-		shellHistory->size--;
+		currentShellHistory->size--;
 	}
 
-	free(shellHistory);
+	free(currentShellHistory);
 }
 
 /**
  * @brief Get the Shell History Size object
  *
- * @param shellHistory
+ * @param currentShellHistory
  * @return int size of shell history
  */
-int getShellHistorySize(ShellHistory *shellHistory)
+int getShellHistorySize(ShellHistory *currentShellHistory)
 {
-	return shellHistory->size;
+	return currentShellHistory->size;
 }

@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>		// pipe/fork/dup2
 #include <sys/wait.h> // waitpid
 #include <fcntl.h>
@@ -15,6 +16,8 @@
 int MAX_INPUT_SIZE = 100;
 int tokenize(char line[], char *tokens[], char delim[]);
 int validateToken(char token[]);
+int executeCommands(char *commands[], ShellHistory *shellHistory);
+
 
 int main(int argc, char *argv[])
 {
@@ -22,6 +25,8 @@ int main(int argc, char *argv[])
 	int done = 0;
 	int numberOfTokens;
 	char *arguments[10];
+	ShellHistory *history = initializeShellHistory();
+
 	printf("> ");
 	// Read the input
 	while (!done)
@@ -42,7 +47,8 @@ int main(int argc, char *argv[])
 		numberOfTokens = tokenize(input, arguments, " \t\r\n");
 		if (numberOfTokens > 0)
 		{
-			done = 1;
+			arguments[10 - 1] = NULL;
+			done = executeCommands(arguments, history);
 		}
 
 		printf("> ");
@@ -66,7 +72,7 @@ int tokenize(char line[], char *tokens[], char delim[])
         else
         {
             // What should we do if we hit an invalid token? freeCommandList?
-            return NULL;
+            return 0;
         }
     }
     return i;
@@ -81,10 +87,74 @@ int validateToken(char token[])
 
 // Function to handle execution of commands
 // I think this is where that example code from class will live
-int executeCommands(char *commands[])
+int executeCommands(char *commands[], ShellHistory *shellHistory)
 {
-    if (strcmp(commands[0], "quit") == 0){
+    if (strcmp(commands[0], "quit") == 0)
+	{
         return 1;
-    }
+    } else if (strcmp(commands[0], "hist") == 0)
+	{
+		char **historyList = getShellHistory(shellHistory);
+		int historySize = getShellHistorySize(shellHistory);
+		if(historyList)
+		{
+			for(int i = 0; i < historySize; i++)
+			{
+				printf("%d %s\n", historySize - i, historyList[i]);
+			}
+		}
+	} else if (strcmp(commands[0], "r") == 0)
+		{
+			char **historyList = getShellHistory(shellHistory);
+			int histSize = getShellHistorySize(shellHistory);
+			int histSelect = atoi(commands[1]);
+			char *args[] = { historyList[histSize - histSelect], NULL};
+
+			if(fork() == 0) {
+				execvp(historyList[histSize - histSelect], args);
+				exit(1);
+			} else {
+				wait(NULL);
+			}
+		} else { 
+		addShellHistory(shellHistory, commands[0]);
+
+		// for(int i = 0; i < 3; i++)
+		// {
+		// 	printf("Command at %d: %s\n", i, commands[i]);
+		// }
+		//////////////////////////////////////////////////////////////
+		ShellCommandList *commandList = initializeShellCommandList();
+		int i = 0;
+		while (strcmp(commands[i], "\0") != 0)
+		{
+			printf("About to add token.\n");
+			addCommandToken(commandList, commands[i]);
+			i++;
+		}
+			printf("Midway.\n");
+		char *currToken = getNextToken(commandList);
+		while (currToken != NULL)
+		{
+			printf("The commandList value %s\n", currToken);
+			currToken = getNextToken(commandList);
+		}
+		/////////////////////////////////////////////////////////////////
+		if(fork() == 0)
+		{ 
+			// printf("We are about to execute.\n");
+			// int status_code = 
+			execvp(commands[0], commands);
+			// if (status_code == -1)
+			// {
+			// 	printf("We did not terminate correctly.\n");
+			// 	return 0;
+			// }
+			exit(1);
+		} else
+		{
+			wait(NULL);
+		}
+	}
     return 0;
 }

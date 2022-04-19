@@ -1,7 +1,7 @@
 #ifndef SHELL_HISTORY_H
 #define SHELL_HISTORY_H
 
-typedef struct shellHistoryNode ShellHistoryNode;
+// typedef struct shellHistoryNode ShellHistoryNode;
 typedef struct shellHistory ShellHistory;
 
 ShellHistory *initializeShellHistory();
