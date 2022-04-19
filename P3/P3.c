@@ -1,3 +1,9 @@
+/*******************************************************************************
+ * Description: P3 
+ * Author: Demetrios Green & Ben Pink
+ * Date: 04-20-2022
+*******************************************************************************/
+
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h> // rand, etc
@@ -10,7 +16,7 @@
 #define INSPIRE_MIN 7
 #define INSPIRE_MAX 10
 #define STUDENT_SOCIALIZE_MIN 1
-#define STUDENT_SOCIALE_MAX 4
+#define STUDENT_SOCIALIZE_MAX 4
 
 pthread_mutex_t students_in_classroom_mutex;
 int students_in_classroom = 0; // counter
@@ -36,6 +42,7 @@ pthread_t teacher;
 //Create array for student threads
 pthread_t student_threads[10];
 
+void *studentThread();
 
 void *teacher_sleep()
 {
@@ -51,9 +58,10 @@ void *teacher_sleep()
             teacher_sleeping = 0;
         }
 
-        if(students_in_classroom == 10)
+        if(students_in_classroom == 10) // I think the last student has to broadcast to the teacher
         {
-            int teaching_time = (rand() % (TEACHER_TEACH_MAX - TEACHER_TEACH_MIN + 1)) + TEACHER_TEACH_MIN;
+            // teaching_time should be of type time_t
+            time_t teaching_time = (rand() % (TEACHER_TEACH_MAX - TEACHER_TEACH_MIN + 1)) + TEACHER_TEACH_MIN;
 
             pthread_cond_wait(&waiting_for_class_to_start_cond, &waiting_for_class_to_start_mutex);
             
@@ -100,7 +108,23 @@ void student_attend_class()
 
 int main()
 {
+    /* 
+       I think we should consider changin the design you started here...
+       I think we should have 2 functions, and maybe three for getting random times,
+       other than the main one.  We should have a teacher function and a student fucntion.
+       Having the other functions gets overcomplicated and I think right now this design would lead
+       us to created a new thread any time a thread changed state.
+       Each thread created calls on its function, so the pthread_create(&teacher, NULL, teacher_thread, NULL);
+       and the student would be pthread_create(student_threads[i], NULL, student_thread, studentId);
+       We could even possible use the main thread as the teacher if we wanted, but not sure.
+       The way I think of it is each of these functions is a student/teacher object.  So the fucntion body
+       handles the behavior/state machine of that object.
+       I am going to attempt to create the student function before I leave for dinner to try to get an 
+       example of what I am thinking here.
+    */
     pthread_create(&teacher, NULL, teacher_sleep, (void *)NULL);
+    time_t sometime;
+    srand((unsigned) time(&sometime));
 
     for(int i = 0; i < 10; i++)
     {
@@ -112,4 +136,23 @@ int main()
     }
 
     pthread_exit(NULL);
+}
+
+void *studentThread(void *num)
+{
+  // Get id
+  int id = *((int *) num);
+  while(1)
+  {
+    // Socalize
+    printf("student_thread[%d] : socializing\n", id);
+    time_t wait_time = (rand() % (STUDENT_SOCIALIZE_MAX - STUDENT_SOCIALIZE_MIN + 1)) + STUDENT_SOCIALIZE_MIN;
+    sleep(wait_time);
+    // Go to class
+    pthread_mutex_lock(&waiting_for_class_to_start_mutex);
+    printf("student_thread[%d] : in the classroom\n", id);
+    pthread_mutex_unlock(&waiting_for_class_to_start_mutex);
+  }
+  return NULL;
+
 }
