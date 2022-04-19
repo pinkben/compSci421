@@ -3,6 +3,15 @@
 #include <stdlib.h> // rand, etc
 #include <unistd.h> // sleep
 
+#define TEACHER_TEACH_MIN 2
+#define TEACHER_TEACH_MAX 5
+#define TEACHER_RESEARCH_MIN 5
+#define TEACHER_RESEARCH_MAX 8
+#define INSPIRE_MIN 7
+#define INSPIRE_MAX 10
+#define STUDENT_SOCIALIZE_MIN 1
+#define STUDENT_SOCIALE_MAX 4
+
 pthread_mutex_t students_in_classroom_mutex;
 int students_in_classroom = 0; // counter
 
@@ -27,13 +36,37 @@ pthread_t teacher;
 //Create array for student threads
 pthread_t student_threads[10];
 
-void teacher_sleep()
+
+void *teacher_sleep()
 {
-    while(!lightning_strikes && students_in_classroom < 10)
+
+
+
+    while(1)
     {
-        printf("Teacher is waiting for class to start(sleeping)");
-        //wait();
+        while(teacher_sleeping_cond)
+        {
+            printf("Teacher is waiting for class to start(sleeping)");
+            pthread_cond_wait(&teacher_sleeping_cond, &teacher_sleeping_mutex);
+            teacher_sleeping = 0;
+        }
+
+        if(students_in_classroom == 10)
+        {
+            int teaching_time = (rand() % (TEACHER_TEACH_MAX - TEACHER_TEACH_MIN + 1)) + TEACHER_TEACH_MIN;
+
+            pthread_cond_wait(&waiting_for_class_to_start_cond, &waiting_for_class_to_start_mutex);
+            
+            waiting_for_class_to_start = 0;
+            
+            printf("teaching");
+        }
+
+
+
     }
+
+
 
 
 }
@@ -48,7 +81,7 @@ void do_research()
 
 }
 
-void student_decision()
+void *student_decision()
 {
 
 }
@@ -71,8 +104,11 @@ int main()
 
     for(int i = 0; i < 10; i++)
     {
+        int *counter = malloc(sizeof(int*));
+        *counter = i;
+
         //Create student threads
-        pthread_create(&student_threads[i], NULL, student_decision, (void *)i);
+        pthread_create(&student_threads[i], NULL, student_decision, (void *)counter);
     }
 
     pthread_exit(NULL);
