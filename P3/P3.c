@@ -39,9 +39,6 @@ pthread_t student_threads[10];
 
 void *teacher_sleep()
 {
-
-
-
     while(1)
     {
         while(teacher_sleeping_cond)
@@ -53,22 +50,19 @@ void *teacher_sleep()
 
         if(students_in_classroom == 10)
         {
+            //Create a random amount of time to teach
             int teaching_time = (rand() % (TEACHER_TEACH_MAX - TEACHER_TEACH_MIN + 1)) + TEACHER_TEACH_MIN;
 
+            //Reference condition and aqcuire lock
             pthread_cond_wait(&waiting_for_class_to_start_cond, &waiting_for_class_to_start_mutex);
-            
+            pthread_mutex_lock();
             waiting_for_class_to_start = 0;
-            
+
             printf("teaching");
+
+
         }
-
-
-
     }
-
-
-
-
 }
 
 void teach_class()
