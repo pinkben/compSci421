@@ -43,6 +43,7 @@ pthread_t teacher;
 pthread_t student_threads[10];
 
 void *studentThread();
+void *teacherThread();
 
 void *teacher_sleep()
 {
@@ -122,9 +123,20 @@ int main()
        I am going to attempt to create the student function before I leave for dinner to try to get an 
        example of what I am thinking here.
     */
-    pthread_create(&teacher, NULL, teacher_sleep, (void *)NULL);
-    time_t sometime;
-    srand((unsigned) time(&sometime));
+
+    // Init locks
+    assert(pthread_mutex_init(&waiting_for_class_to_start_mutex, NULL) == 0);
+    assert(pthread_mutex_init(&students_in_classroom_mutex, NULL) == 0);
+    assert(pthread_mutex_init(&teacher_sleeping_mutex, NULL) == 0);
+    assert(pthread_mutex_init(&class_dismissed_mutex, NULL) == 0);
+    assert(pthread_mutex_init(&lightning_strikes_mutex, NULL) == 0);
+    
+    // Init varibles
+    assert(pthread_cond_init(&teacher_sleeping_cond, NULL) == 0);
+    assert(pthread_cond_init(&class_dismissed_cond, NULL) == 0);
+    assert(pthread_cond_init(&waiting_for_class_to_start_cond, NULL) == 0);
+
+    pthread_create(&teacher, NULL, teacherThread, (void *)NULL);
 
     for(int i = 0; i < 10; i++)
     {
@@ -132,7 +144,7 @@ int main()
         *counter = i;
 
         //Create student threads
-        pthread_create(&student_threads[i], NULL, student_decision, (void *)counter);
+        pthread_create(&student_threads[i], NULL, studentThread, (void *)counter);
     }
 
     pthread_exit(NULL);
@@ -140,19 +152,44 @@ int main()
 
 void *studentThread(void *num)
 {
+  time_t sometime;
+  srand((unsigned) time(&sometime));
   // Get id
   int id = *((int *) num);
   while(1)
   {
-    // Socalize
-    printf("student_thread[%d] : socializing\n", id);
-    time_t wait_time = (rand() % (STUDENT_SOCIALIZE_MAX - STUDENT_SOCIALIZE_MIN + 1)) + STUDENT_SOCIALIZE_MIN;
-    sleep(wait_time);
-    // Go to class
-    pthread_mutex_lock(&waiting_for_class_to_start_mutex);
-    printf("student_thread[%d] : in the classroom\n", id);
-    pthread_mutex_unlock(&waiting_for_class_to_start_mutex);
+    int option = (rand() % 2);
+    if (option)
+    {
+      // Go to class
+      pthread_mutex_lock(&waiting_for_class_to_start_mutex);
+      pthread_mutex_lock(&students_in_classroom_mutex);
+      students_in_classroom++;
+      pthread_mutex_unlock(&students_in_classroom_mutex);
+      printf("student_thread[%d] : in the classroom (%d)\n", id, students_in_classroom);
+      pthread_cond_wait(&waiting_for_class_to_start_cond, &waiting_for_class_to_start_mutex);
+      pthread_mutex_unlock(&waiting_for_class_to_start_mutex);
+    }
+    else
+    {
+      // Socalize
+      printf("student_thread[%d] : socializing\n", id);
+      time_t wait_time = (rand() % (STUDENT_SOCIALIZE_MAX - STUDENT_SOCIALIZE_MIN + 1)) + STUDENT_SOCIALIZE_MIN;
+      sleep(wait_time);
+    }
   }
   return NULL;
+}
 
+void teacherThread()
+{
+  time_t sometime;
+  srand((unsigned) time(&sometime));
+  while(1)
+  {
+    pthread_mutex_lock(&teacher_sleeping_mutex);
+    print("teacher_thread : sleeping\n");
+
+  }
+  return NULL;
 }
