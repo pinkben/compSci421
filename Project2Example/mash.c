@@ -204,6 +204,7 @@ int eval(CommandList *list, History *history) {
           open(token, O_CREAT|O_WRONLY|O_TRUNC, S_IRWXU);
         }
         execvp(argsList[0], argsList);
+        printf("We are here.\n");
         perror("Ope, can't execute that.");
         exit(1);
       } else {
