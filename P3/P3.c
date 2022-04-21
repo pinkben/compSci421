@@ -51,28 +51,6 @@ void teach_class();
 
 int main()
 {
-<<<<<<< HEAD
-    while(1)
-    {
-        while(teacher_sleeping_cond)
-        {
-            printf("Teacher is waiting for class to start(sleeping)");
-            pthread_cond_wait(&teacher_sleeping_cond, &teacher_sleeping_mutex);
-            teacher_sleeping = 0;
-        }
-
-        if(students_in_classroom == 10)
-        {
-            //Create a random amount of time to teach
-            int teaching_time = (rand() % (TEACHER_TEACH_MAX - TEACHER_TEACH_MIN + 1)) + TEACHER_TEACH_MIN;
-
-            //Reference condition and aqcuire lock
-            pthread_cond_wait(&waiting_for_class_to_start_cond, &waiting_for_class_to_start_mutex);
-            pthread_mutex_lock();
-            waiting_for_class_to_start = 0;
-
-            printf("teaching");
-=======
     // Init locks
     assert(pthread_mutex_init(&waiting_for_class_to_start_mutex, NULL) == 0);
     assert(pthread_mutex_init(&students_in_classroom_mutex, NULL) == 0);
@@ -96,17 +74,11 @@ int main()
     {
         int *counter = malloc(sizeof(int *));
         *counter = i;
->>>>>>> dee-branch
 
         // Create student threads
         pthread_create(&student_threads[i], NULL, student_thread, (void *)counter);
     }
 
-<<<<<<< HEAD
-        }
-    }
-}
-=======
     // Wait for all threads to terminate (rare case) by joining
     pthread_join(teacher, NULL);
     pthread_join(inspiration, NULL);
@@ -150,7 +122,6 @@ void *student_thread(void *num)
             // Begin learning
             printf("student_thread[%d] : learning\n", id);
             pthread_mutex_unlock(&waiting_for_class_to_start_mutex);
->>>>>>> dee-branch
 
             // Wait for class to be dismissed
             pthread_cond_wait(&class_dismissed_cond, &class_dismissed_mutex);
