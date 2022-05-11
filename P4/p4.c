@@ -55,6 +55,7 @@ void push(int queue[], int *size, int item);
 void delete (int queue[], int *size, int index);
 int pop(int queue[], int *size);
 void run_fifo(processInfo *proc_ctl_blk);
+void run_sjf(processInfo *proc_ctl_blk);
 
 int main(int argc, char *argv[])
 {
@@ -80,7 +81,8 @@ int main(int argc, char *argv[])
 
   // Run the processes here using the
   // different algorithms
-  run_fifo(procControlBlk);
+  // run_fifo(procControlBlk);
+  run_sjf(procControlBlk);
 
   // Cleaning up
   free(procControlBlk->process);
@@ -230,10 +232,6 @@ void run_sjf(processInfo *proc_ctl_blk)
     int *proc_queue = (int*) malloc(sizeof(int) * proc_ctl_blk->numberOfProcesses);
     int *proc_size;
     proc_size = &size;
-
-    process *p = &proc_ctl_blk->process[i];
-    p->stats.timeRemaining = p->burstTime;
-    push(proc_queue, proc_size, p->pid);
 
     for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++) {
       process *p = &proc_ctl_blk->process[i];
