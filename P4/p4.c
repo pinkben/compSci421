@@ -382,7 +382,7 @@ void run_rr(processInfo *proc_ctl_blk)
     // and calculate stats
     for (int time = 0; *proc_size > 0; time++) {
       process *p = &proc_ctl_blk->process[proc_queue[0]];
-      if ((p->arrivalTime <= time) && (p->stats.timeRemaining) && (timeElasped < procControlBlk->timeQuantum)) {
+      if ((p->arrivalTime <= time) && (p->stats.timeRemaining) && (timeElasped < proc_ctl_blk->timeQuantum)) {
         if(p->scheduledTime == 0 && p->pid != 0)
         {
           p->scheduledTime = time;
