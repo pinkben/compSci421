@@ -304,6 +304,8 @@ double avg_turnaround = 0;
         shortest_index = 0;
         procs_remaining--;
       }
+      //Sentinel value
+      unsigned long marker = 123456; 
       // Find shortest process for given time
       for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++) {
         process *p = proc_array[i];
@@ -311,21 +313,30 @@ double avg_turnaround = 0;
           if (!shortest) {
             shortest = p;
             shortest_index = i;
+            shortest->scheduledTime = marker;
           } else if ((shortest->burstTime) > (p->burstTime)) {
               shortest = p;
               shortest_index = i;
+              shortest->scheduledTime = marker;
           }
         }
       }
-      // Execute shortest job for one unit of time
-      if (shortest && (shortest->stats.timeRemaining > 0)) {
-        if(shortest->scheduledTime == 0 && time == 0)
-        {
-          shortest->scheduledTime = time;
-        } else if(shortest->scheduledTime == 0 && time != 0)
+
+      //Check if we have assigned a scheduled time
+      if(shortest->scheduledTime == marker)
+      {
+        //Case to handle shortest job
+        if(time == 0)
         {
           shortest->scheduledTime = time;
         }
+
+        //Case for all other processes that have not been scheduled
+        shortest->scheduledTime = time;
+      } 
+
+      // Execute shortest job for one unit of time
+      if (shortest && (shortest->stats.timeRemaining > 0)) {
         shortest->stats.timeRemaining--;
       } else {
         time--;
@@ -382,7 +393,7 @@ void run_rr(processInfo *proc_ctl_blk)
     // and calculate stats
     for (int time = 0; *proc_size > 0; time++) {
       process *p = &proc_ctl_blk->process[proc_queue[0]];
-      if ((p->arrivalTime <= time) && (p->stats.timeRemaining) && (timeElasped < procControlBlk->timeQuantum)) {
+      if ((p->arrivalTime <= time) && (p->stats.timeRemaining) && (timeElasped < proc_ctl_blk->timeQuantum)) {
         if(p->scheduledTime == 0 && p->pid != 0)
         {
           p->scheduledTime = time;
