@@ -7,8 +7,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//TODO: Not sure if we are going to need this struct considering our output
-typedef struct {
+// TODO: Not sure if we are going to need this struct considering our output
+typedef struct
+{
   // Tell scheduling algorithm the amount of time
   // remaining until the program finishes
   unsigned long timeRemaining;
@@ -21,22 +22,26 @@ typedef struct {
 } processStats;
 
 /* Stores proccess information */
-typedef struct {
+typedef struct
+{
   // Process ID number
   unsigned long pid;
   // Time at which process arrived
   unsigned long arrivalTime;
   // Process duration
   unsigned long burstTime;
+  // Process scheduled time
+  unsigned long scheduledTime;
   // Process statistics
   processStats stats;
 } process;
 
-typedef struct {
+typedef struct
+{
   // Number of processes in the system
-  unsigned long numProcs;
+  unsigned long numberOfProcesses;
   // Array of processes in the system
-  process *processs;
+  process *process;
   // Round robin time quantum
   unsigned long timeQuantum;
   // MLFQ S value
@@ -44,27 +49,38 @@ typedef struct {
 } processInfo;
 
 processInfo *parse(FILE *file);
+void print_queue_helper(process *proc, unsigned long time);
+void releaseQueue(int* procQueue, int *size);
+void push(int queue[], int *size, int item);
+void delete (int queue[], int *size, int index);
+int pop(int queue[], int *size);
+void run_fifo(processInfo *proc_ctl_blk);
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   // Make sure there's only one argument
-  if (argc != 2) {
+  if (argc != 2)
+  {
     fprintf(stderr, "Invalid number of arguments\n");
     fprintf(stderr, "Usage: p4 (process information file)\n");
     return EXIT_FAILURE;
   }
 
   // Parse process information file
-  FILE *processInfo = fopen(argv[1], "r");
-  if (!processInfo) {
+  FILE *process_input_data = fopen(argv[1], "r");
+  if (!process_input_data)
+  {
     perror("Unable to open process information file");
     return EXIT_FAILURE;
   }
-  processInfo *procControlBlk = parse(processInfo);
-  fclose(processInfo);
+  fprintf(stderr, "Reading processes in %s ...", argv[1]);
+  processInfo *procControlBlk = parse(process_input_data);
+  fclose(process_input_data);
+  fprintf(stderr, "Done\n");
 
   // Run the processes here using the
   // different algorithms
-
+  run_fifo(procControlBlk);
 
   // Cleaning up
   free(procControlBlk->process);
@@ -73,29 +89,31 @@ int main(int argc, char *argv[]) {
 }
 
 // Function for parsing input file
-processInfo *parse(FILE *file) {
+processInfo *parse(FILE *file)
+{
   // Initialize process control block and
   // fill-ins for its numerical components
   unsigned long numProcess = 0;
   unsigned long timeQuantum = 0;
   unsigned long mlfqS = 0;
-  processInfo *procControlBlk = (processInfo *) malloc(sizeof(processInfo));
+  processInfo *procControlBlk = (processInfo *)malloc(sizeof(processInfo));
 
   // Find number of processes
   fscanf(file, "%lu\n", &numProcess);
-  procControlBlk->numProcess = numProcess;
+  procControlBlk->numberOfProcesses = numProcess;
 
   // Allocate space for process array
-  procControlBlk->process = (process *) malloc(numProcess * sizeof(process));
+  procControlBlk->process = (process *)malloc(numProcess * sizeof(process));
 
   // read process info and fill process array
-  for (int i = 0; i < numProcess; i++) {
+  for (int i = 0; i < numProcess; i++)
+  {
     unsigned long arrivalTime = 0;
     unsigned long burstTime = 0;
     fscanf(file, "%lu,%lu\n", &arrivalTime, &burstTime);
     procControlBlk->process[i].pid = i;
-    procControlBlk->process[i].time_arrival = arrivalTime;
-    procControlBlk->process[i].time_burst = burstTime;
+    procControlBlk->process[i].arrivalTime = arrivalTime;
+    procControlBlk->process[i].burstTime = burstTime;
   }
 
   // Find time quantum and MLFQ S value
@@ -105,4 +123,114 @@ processInfo *parse(FILE *file) {
 
   // Return filled process control block
   return procControlBlk;
+}
+
+void push(int queue[], int *size, int item)
+{
+  queue[(*size)++] = item;
+}
+
+void delete (int queue[], int *size, int index)
+{ // Assumes queue is not empty and
+  // index is valid
+  int i;
+  (*size)--;
+  for (i = index; i < *size; i++)
+  {
+    queue[i] = queue[i + 1];
+  }
+}
+
+int pop(int queue[], int *size)
+{ // Assumes queue is not empty
+  int temp = queue[0];
+  delete (queue, size, 0);
+  return temp;
+}
+
+void run_fifo(processInfo *proc_ctl_blk) {
+  // Print header
+  printf("Simulating FIFO...");
+
+  // Initialize overall statistic fields
+  double avg_turnaround = 0;
+  double avg_latency = 0;
+  int size = 0;
+
+  // Make sure there are processes to work with
+  if (proc_ctl_blk && (proc_ctl_blk->numberOfProcesses > 0)) {
+
+    // Create and populate a process queue
+    // and initialize the time_remaining field
+    // queue *proc_queue = queue_init();
+    int *proc_queue = (int*) malloc(sizeof(int) * proc_ctl_blk->numberOfProcesses);
+    int *proc_size;
+    proc_size = &size;
+
+    for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++) {
+      process *p = &proc_ctl_blk->process[i];
+      p->stats.timeRemaining = p->burstTime;
+      // queue_enqueue(proc_queue, (void *) p);
+      push(proc_queue, proc_size, p->pid);
+    }
+    
+    // Run the processes in the process queue
+    // and calculate stats
+    for (int time = 0; *proc_size > 0; time++) {
+      // process *p = (process *) queue_peek(proc_queue);
+      process *p = &proc_ctl_blk->process[proc_queue[0]];
+      // printf("Process queue length is: %d\n", *proc_size);
+      if ((p->arrivalTime <= time) && (p->stats.timeRemaining)) 
+      {
+        if(p->scheduledTime == 0 && p->pid != 0)
+        {
+          p->scheduledTime = time;
+        }
+        p->stats.timeRemaining--;
+      } else {
+        // queue_dequeue(proc_queue);
+        
+        pop(proc_queue, proc_size);
+        print_queue_helper(p, time);
+        avg_turnaround += p->stats.turnaroundTime;
+        avg_latency += p->stats.latencyTime;
+        time--;
+      }
+    }
+    avg_turnaround /= proc_ctl_blk->numberOfProcesses;
+    avg_latency /= proc_ctl_blk->numberOfProcesses;
+
+    // Free process queue
+    releaseQueue(proc_queue, proc_size);
+  }
+  // Print statistics
+  printf("  Average turnaround time: %lf\n", avg_turnaround);
+  printf("  Average latency:         %lf\n", avg_latency);
+  printf("Done\n");
+}
+
+void run_sjf(processInfo *proc_ctl_blk)
+{
+
+}
+
+void print_queue_helper(process *proc, unsigned long time)
+{
+  proc->stats.finishTime = time;
+  proc->stats.turnaroundTime = time - proc->arrivalTime;
+  proc->stats.latencyTime = proc->stats.turnaroundTime - proc->burstTime;
+
+  printf("Process %lu: ", proc->pid);
+  printf("arrival=%lu", proc->arrivalTime);
+  printf(", burst=%lu", proc->burstTime);
+  printf(", scheduled=%lu", proc->scheduledTime);
+  printf(", finish=%lu", proc->stats.finishTime);
+  printf(", turnaround=%lu", proc->stats.turnaroundTime);
+  printf(", latency=%lu", proc->stats.latencyTime);
+  printf(", response=%lu\n", proc->scheduledTime - proc->arrivalTime);
+}
+
+void releaseQueue(int* procQueue, int *size)
+{
+  free(procQueue);
 }
