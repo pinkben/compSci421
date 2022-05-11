@@ -48,15 +48,19 @@ typedef struct
   unsigned long mlfqS;
 } processInfo;
 
+//MLFQ Count
+#define QUEUE_COUNT 4
+
 processInfo *parse(FILE *file);
 void print_queue_helper(process *proc, unsigned long time);
-void releaseQueue(int* procQueue, int *size);
+void releaseQueue(int *procQueue, int *size);
 void push(int queue[], int *size, int item);
 void delete (int queue[], int *size, int index);
 int pop(int queue[], int *size);
 void run_fifo(processInfo *proc_ctl_blk);
 void run_sjf(processInfo *proc_ctl_blk);
-void run_rr(processInfo *proc_ctl_blk);
+void run_RoundRobin(processInfo *proc_ctl_blk);
+void run_MLFQ(processInfo *proc_ctl_blk);
 
 int main(int argc, char *argv[])
 {
@@ -82,7 +86,8 @@ int main(int argc, char *argv[])
 
   // Run the processes here using the
   // different algorithms
-  // run_fifo(procControlBlk);
+  run_fifo(procControlBlk);
+  run_RoundRobin(procControlBlk);
   run_sjf(procControlBlk);
 
   // Cleaning up
@@ -151,9 +156,10 @@ int pop(int queue[], int *size)
   return temp;
 }
 
-void run_fifo(processInfo *proc_ctl_blk) {
+void run_fifo(processInfo *proc_ctl_blk)
+{
   // Print header
-  printf("Simulating FIFO...");
+  printf("Simulating FIFO...\n");
 
   // Initialize overall statistic fields
   double avg_turnaround = 0;
@@ -161,38 +167,43 @@ void run_fifo(processInfo *proc_ctl_blk) {
   int size = 0;
 
   // Make sure there are processes to work with
-  if (proc_ctl_blk && (proc_ctl_blk->numberOfProcesses > 0)) {
+  if (proc_ctl_blk && (proc_ctl_blk->numberOfProcesses > 0))
+  {
 
     // Create and populate a process queue
     // and initialize the time_remaining field
     // queue *proc_queue = queue_init();
-    int *proc_queue = (int*) malloc(sizeof(int) * proc_ctl_blk->numberOfProcesses);
+    int *proc_queue = (int *)malloc(sizeof(int) * proc_ctl_blk->numberOfProcesses);
     int *proc_size;
     proc_size = &size;
 
-    for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++) {
+    for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++)
+    {
       process *p = &proc_ctl_blk->process[i];
       p->stats.timeRemaining = p->burstTime;
       // queue_enqueue(proc_queue, (void *) p);
       push(proc_queue, proc_size, p->pid);
     }
-    
+
     // Run the processes in the process queue
     // and calculate stats
-    for (int time = 0; *proc_size > 0; time++) {
+    for (int time = 0; *proc_size > 0; time++)
+    {
       // process *p = (process *) queue_peek(proc_queue);
       process *p = &proc_ctl_blk->process[proc_queue[0]];
       // printf("Process queue length is: %d\n", *proc_size);
-      if ((p->arrivalTime <= time) && (p->stats.timeRemaining)) 
+      if ((p->arrivalTime <= time) && (p->stats.timeRemaining))
       {
-        if(p->scheduledTime == 0 && p->pid != 0)
+        if (p->scheduledTime == 0 && p->pid != 0)
         {
           p->scheduledTime = time;
         }
         p->stats.timeRemaining--;
-      } else {
+      }
+      else
+      {
         // queue_dequeue(proc_queue);
-        
+
         pop(proc_queue, proc_size);
         print_queue_helper(p, time);
         avg_turnaround += p->stats.turnaroundTime;
@@ -205,10 +216,10 @@ void run_fifo(processInfo *proc_ctl_blk) {
 
     // Free process queue
     releaseQueue(proc_queue, proc_size);
-  // Print statistics
-  printf("  Average turnaround time: %lf\n", avg_turnaround);
-  printf("  Average latency:         %lf\n", avg_latency);
-  printf("Done\n");
+    // Print statistics
+    printf("  Average turnaround time: %lf\n", avg_turnaround);
+    printf("  Average latency:         %lf\n", avg_latency);
+    printf("Done\n");
   }
   else if ((proc_ctl_blk->numberOfProcesses == 0))
   {
@@ -218,71 +229,20 @@ void run_fifo(processInfo *proc_ctl_blk) {
 
 void run_sjf(processInfo *proc_ctl_blk)
 {
-    // Print header
-  printf("Simulating SJF...");
+  // Print header
+  printf("Simulating SJF...\n");
 
-  // Initialize overall statistic fields
-  // double avg_turnaround = 0;
-  // double avg_latency = 0;
-  // int size = 0;
-  //   // Make sure there are processes to work with
-  // if (proc_ctl_blk && (proc_ctl_blk->numberOfProcesses > 0)) {
-
-  //   // Create and populate a process queue
-  //   // and initialize the time_remaining field
-  //   int *proc_queue = (int*) malloc(sizeof(int) * proc_ctl_blk->numberOfProcesses);
-  //   int *proc_size;
-  //   proc_size = &size;
-
-  //   for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++) {
-  //     process *p = &proc_ctl_blk->process[i];
-  //     p->stats.timeRemaining = p->burstTime;
-  //     push(proc_queue, proc_size, p->pid);
-  //   }
-    
-  //   // Run the processes in the process queue
-  //   // and calculate stats
-  //   for (int time = 0; *proc_size > 0; time++) {
-  //     process *p = &proc_ctl_blk->process[proc_queue[0]];
-  //     for(int i = 1; i < *proc_size; i++)
-  //     {
-  //       process *q = &proc_ctl_blk->process[proc_queue[i]];
-  //       if (p->burstTime > q->burstTime)
-  //       {
-  //           p = q;
-  //       }
-  //     }
-  //     if ((p->arrivalTime <= time) && (p->stats.timeRemaining)) 
-  //     {
-  //       if(p->scheduledTime == 0 && p->pid != 0)
-  //       {
-  //         p->scheduledTime = time;
-  //       }
-  //       p->stats.timeRemaining--;
-  //     } else {
-  //       // queue_dequeue(proc_queue);
-        
-  //       pop(proc_queue, proc_size);
-  //       print_queue_helper(p, time);
-  //       avg_turnaround += p->stats.turnaroundTime;
-  //       avg_latency += p->stats.latencyTime;
-  //       time--;
-  //     }
-  //   }
-  //   avg_turnaround /= proc_ctl_blk->numberOfProcesses;
-  //   avg_latency /= proc_ctl_blk->numberOfProcesses;
-
-
-  //////////////////////////////////////////////////////////
-double avg_turnaround = 0;
+  double avg_turnaround = 0;
   double avg_latency = 0;
 
   // Make sure there are processes to work with
-  if (proc_ctl_blk && (proc_ctl_blk->numberOfProcesses > 0)) {
+  if (proc_ctl_blk && (proc_ctl_blk->numberOfProcesses > 0))
+  {
 
     // Create and populate a process array
     process *proc_array[proc_ctl_blk->numberOfProcesses];
-    for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++) {
+    for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++)
+    {
       process *p = &proc_ctl_blk->process[i];
       p->stats.timeRemaining = p->burstTime;
       proc_array[i] = p;
@@ -293,9 +253,12 @@ double avg_turnaround = 0;
     process *shortest = NULL;
     unsigned long shortest_index = 0;
     unsigned long procs_remaining = proc_ctl_blk->numberOfProcesses;
-    for (int time = 0; procs_remaining; time++) {
+        
+    for (int time = 0; procs_remaining; ++time)
+    {
       // Remove shortest job from the array if it's done
-      if (shortest && !(shortest->stats.timeRemaining)) {
+      if (shortest && !(shortest->stats.timeRemaining))
+      {
         print_queue_helper(shortest, time);
         avg_turnaround += shortest->stats.turnaroundTime;
         avg_latency += shortest->stats.latencyTime;
@@ -304,41 +267,43 @@ double avg_turnaround = 0;
         shortest_index = 0;
         procs_remaining--;
       }
-      //Sentinel value
-      unsigned long marker = 123456; 
+      // Sentinel value
+      unsigned long marker = 1234;
       // Find shortest process for given time
-      for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++) {
+      for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++)
+      {
         process *p = proc_array[i];
-        if (p && (p->arrivalTime <= time)) {
-          if (!shortest) {
+        if (p && (p->arrivalTime <= time))
+        {
+          if (!shortest)
+          {
             shortest = p;
             shortest_index = i;
             shortest->scheduledTime = marker;
-          } else if ((shortest->burstTime) > (p->burstTime)) {
-              shortest = p;
-              shortest_index = i;
-              shortest->scheduledTime = marker;
+          }
+          else if ((shortest->burstTime) > (p->burstTime))
+          {
+            shortest = p;
+            shortest_index = i;
+            shortest->scheduledTime = marker;
           }
         }
       }
-
-      //Check if we have assigned a scheduled time
-      if(shortest->scheduledTime == marker)
+      
+      // Check if we have assigned a scheduled time
+      if (shortest->scheduledTime == marker)
       {
-        //Case to handle shortest job
-        if(time == 0)
-        {
-          shortest->scheduledTime = time;
-        }
-
-        //Case for all other processes that have not been scheduled
-        shortest->scheduledTime = time;
-      } 
+        // This is currently causing a seg fault but toggle for correct values
+        // shortest->scheduledTime = time;
+      }
 
       // Execute shortest job for one unit of time
-      if (shortest && (shortest->stats.timeRemaining > 0)) {
+      if (shortest && (shortest->stats.timeRemaining > 0))
+      {
         shortest->stats.timeRemaining--;
-      } else {
+      }
+      else
+      {
         time--;
       }
     }
@@ -346,8 +311,8 @@ double avg_turnaround = 0;
     avg_latency /= proc_ctl_blk->numberOfProcesses;
 
     // Free process queue
-    // releaseQueue(proc_array, proc_ctl_blk->numberOfProcesses);
-  
+    // free(proc_array);
+
     ////////////////////////////////////////////////////////////////
 
     // Print statistics
@@ -361,10 +326,10 @@ double avg_turnaround = 0;
   }
 }
 
-void run_rr(processInfo *proc_ctl_blk)
+void run_RoundRobin(processInfo *proc_ctl_blk)
 {
   // Print header
-  printf("Simulating Round Robin...");
+  printf("Simulating Round Robin...\n");
 
   // Initialize overall statistic fields
   double avg_turnaround = 0;
@@ -372,48 +337,53 @@ void run_rr(processInfo *proc_ctl_blk)
   int size = 0;
 
   // Make sure there are processes to work with
-  if (proc_ctl_blk && (proc_ctl_blk->numberOfProcesses > 0)) {
+  if (proc_ctl_blk && (proc_ctl_blk->numberOfProcesses > 0))
+  {
 
     // Create and populate a process queue
     // and initialize the time_remaining field
     // queue *proc_queue = queue_init();
-    int *proc_queue = (int*) malloc(sizeof(int) * proc_ctl_blk->numberOfProcesses);
+    int *proc_queue = (int *)malloc(sizeof(int) * proc_ctl_blk->numberOfProcesses);
     int *proc_size;
     proc_size = &size;
     int timeElasped = 0;
 
-    for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++) {
+    for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++)
+    {
       process *p = &proc_ctl_blk->process[i];
       p->stats.timeRemaining = p->burstTime;
       // queue_enqueue(proc_queue, (void *) p);
       push(proc_queue, proc_size, p->pid);
     }
-    
+
     // Run the processes in the process queue
     // and calculate stats
-    for (int time = 0; *proc_size > 0; time++) {
+    for (int time = 0; *proc_size > 0; time++)
+    {
       process *p = &proc_ctl_blk->process[proc_queue[0]];
-      if ((p->arrivalTime <= time) && (p->stats.timeRemaining) && (timeElasped < proc_ctl_blk->timeQuantum)) {
-        if(p->scheduledTime == 0 && p->pid != 0)
+      if ((p->arrivalTime <= time) && (p->stats.timeRemaining) && (timeElasped < proc_ctl_blk->timeQuantum))
+      {
+        if (p->scheduledTime == 0 && p->pid != 0)
         {
           p->scheduledTime = time;
         }
         p->stats.timeRemaining--;
         timeElasped++;
-      } 
-      else {
+      }
+      else
+      {
         // queue_dequeue(proc_queue);
         if (p->stats.timeRemaining > 0)
         {
-            push(proc_queue, proc_size, p->pid);
-            pop(proc_queue, proc_size);
+          push(proc_queue, proc_size, p->pid);
+          pop(proc_queue, proc_size);
         }
         else
         {
-            pop(proc_queue, proc_size);
-            print_queue_helper(p, time);
-            avg_turnaround += p->stats.turnaroundTime;
-            avg_latency += p->stats.latencyTime;
+          pop(proc_queue, proc_size);
+          print_queue_helper(p, time);
+          avg_turnaround += p->stats.turnaroundTime;
+          avg_latency += p->stats.latencyTime;
         }
         time--;
         timeElasped = 0;
@@ -424,16 +394,36 @@ void run_rr(processInfo *proc_ctl_blk)
 
     // Free process queue
     releaseQueue(proc_queue, proc_size);
-  // Print statistics
-  printf("  Average turnaround time: %lf\n", avg_turnaround);
-  printf("  Average latency:         %lf\n", avg_latency);
-  printf("Done\n");
+    // Print statistics
+    printf("  Average turnaround time: %lf\n", avg_turnaround);
+    printf("  Average latency:         %lf\n", avg_latency);
+    printf("Done\n");
   }
   else if ((proc_ctl_blk->numberOfProcesses == 0))
   {
     printf("No jobs to do.\n");
   }
 }
+
+// void run_MLFQ(processInfo *proc_ctl_blk) {
+//   printf("Simulating MLFQ...\n");
+
+//   double avg_turnaround = 0;
+//   double avg_latency = 0;
+
+//   if (proc_ctl_blk && (proc_ctl_blk->numberOfProcesses > 0)) {
+
+//     process *proc_queues[QUEUE_COUNT];
+//     for (int i = 0; i < QUEUE_COUNT; i++) {
+//       proc_queues[i] = (process*) malloc(sizeof(process) * proc_ctl_blk->numberOfProcesses);
+//     }
+//     for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++) {
+//       process *p = &proc_ctl_blk->process[i];
+//       p->stats.timeRemaining = p->burstTime;
+//       push(proc_queues[0], sizeof(process) ,  p);
+//     }
+//   }
+// }
 
 void print_queue_helper(process *proc, unsigned long time)
 {
@@ -451,7 +441,7 @@ void print_queue_helper(process *proc, unsigned long time)
   printf(", response=%lu\n", proc->scheduledTime - proc->arrivalTime);
 }
 
-void releaseQueue(int* procQueue, int *size)
+void releaseQueue(int *procQueue, int *size)
 {
   free(procQueue);
 }
