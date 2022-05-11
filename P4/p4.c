@@ -202,16 +202,89 @@ void run_fifo(processInfo *proc_ctl_blk) {
 
     // Free process queue
     releaseQueue(proc_queue, proc_size);
-  }
   // Print statistics
   printf("  Average turnaround time: %lf\n", avg_turnaround);
   printf("  Average latency:         %lf\n", avg_latency);
   printf("Done\n");
+  }
+  else if ((proc_ctl_blk->numberOfProcesses == 0))
+  {
+    printf("No jobs to do.\n");
+  }
 }
 
 void run_sjf(processInfo *proc_ctl_blk)
 {
+    // Print header
+  printf("Simulating SJF...");
 
+  // Initialize overall statistic fields
+  double avg_turnaround = 0;
+  double avg_latency = 0;
+  int size = 0;
+    // Make sure there are processes to work with
+  if (proc_ctl_blk && (proc_ctl_blk->numberOfProcesses > 0)) {
+
+    // Create and populate a process queue
+    // and initialize the time_remaining field
+    int *proc_queue = (int*) malloc(sizeof(int) * proc_ctl_blk->numberOfProcesses);
+    int *proc_size;
+    proc_size = &size;
+
+    process *p = &proc_ctl_blk->process[i];
+    p->stats.timeRemaining = p->burstTime;
+    push(proc_queue, proc_size, p->pid);
+
+    for (int i = 0; i < proc_ctl_blk->numberOfProcesses; i++) {
+      process *p = &proc_ctl_blk->process[i];
+      p->stats.timeRemaining = p->burstTime;
+      push(proc_queue, proc_size, p->pid);
+    }
+    
+    // Run the processes in the process queue
+    // and calculate stats
+    for (int time = 0; *proc_size > 0; time++) {
+      process *p = &proc_ctl_blk->process[proc_queue[0]];
+      for(int i = 1; i < *proc_size; i++)
+      {
+        process *q = &proc_ctl_blk->process[proc_queue[i]];
+        if (p->burstTime > q->burstTime)
+        {
+            p = q;
+        }
+      }
+      if ((p->arrivalTime <= time) && (p->stats.timeRemaining)) 
+      {
+        if(p->scheduledTime == 0 && p->pid != 0)
+        {
+          p->scheduledTime = time;
+        }
+        p->stats.timeRemaining--;
+      } else {
+        // queue_dequeue(proc_queue);
+        
+        pop(proc_queue, proc_size);
+        print_queue_helper(p, time);
+        avg_turnaround += p->stats.turnaroundTime;
+        avg_latency += p->stats.latencyTime;
+        time--;
+      }
+    }
+    avg_turnaround /= proc_ctl_blk->numberOfProcesses;
+    avg_latency /= proc_ctl_blk->numberOfProcesses;
+
+    // Free process queue
+    releaseQueue(proc_queue, proc_size);
+
+    // Print statistics
+    printf("  Average turnaround time: %lf\n", avg_turnaround);
+    printf("  Average latency:         %lf\n", avg_latency);
+    printf("Done\n");
+  }
+  else if ((proc_ctl_blk->numberOfProcesses == 0))
+  {
+    printf("No jobs to do.\n");
+  }
 }
 
 void print_queue_helper(process *proc, unsigned long time)
